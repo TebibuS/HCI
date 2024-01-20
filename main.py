@@ -65,15 +65,24 @@ def start_trial():
     global current_trial, trial_counter, trial_configurations
     canvas.delete("all")  # Clear the canvas for the new trial
 
+    # Update the root window to ensure the canvas size is set
+    root.update_idletasks()
+    root.update()
+
     # Determine the configuration for the current trial
     config_index = trial_counter // MAX_TRIALS_PER_CONFIG
-    circle_radius, distance_from_center, direction = trial_configurations[config_index]
+    if config_index < len(trial_configurations):
+        circle_radius, distance_from_center, direction = trial_configurations[config_index]
+    else:
+        # All configurations have been presented, end the experiment
+        end_experiment()
+        return
 
     # Calculate the position of the circle based on the direction and distance
     circle_x = canvas.winfo_width() / 2 + (distance_from_center if direction == 'right' else -distance_from_center)
     circle_y = canvas.winfo_height() / 2
 
-    # Draw the circle on the canvas
+    # Draw the circle on the canvas at the new position
     canvas.create_oval(circle_x - circle_radius, circle_y - circle_radius, circle_x + circle_radius, circle_y + circle_radius, fill='blue')
 
     # Initialize the data for the current trial
@@ -86,12 +95,20 @@ def start_trial():
         'direction': direction
     }
 
-    # Move the cursor to the center of the screen using pyautogui
+    trial_counter += 1  # Increment the trial counter
+
+    # Move the cursor to the center of the screen using pyautogui (if installed and imported)
     screen_width, screen_height = pyautogui.size()  # Get the size of the screen
     center_x, center_y = screen_width / 2, screen_height / 2
     pyautogui.moveTo(center_x, center_y)  # Move the cursor to the center
 
-    trial_counter += 1  # Increment the trial counter
+
+    # Move the cursor to the center of the screen using pyautogui (if installed and imported)
+    screen_width, screen_height = pyautogui.size()  # Get the size of the screen
+    center_x, center_y = screen_width / 2, screen_height / 2
+    pyautogui.moveTo(center_x, center_y)  # Move the cursor to the center
+
+
 
 # Function to save trial data to a CSV file
 def save_data():
