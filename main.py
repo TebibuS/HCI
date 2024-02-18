@@ -14,7 +14,7 @@ import time  # Used for timing the trials
 import csv  # For recording trial data to a CSV file
 from itertools import product  # For generating combinations of trial configurations
 import pyautogui  # For moving the cursor automatically
-
+from datetime import datetime
 # Define the constants and configurations for the experiment
 MAX_TRIALS_PER_CONFIG = 10
 trial_counter = 0  # Keeps track of the number of trials conducted
@@ -111,23 +111,56 @@ def start_trial():
 
 
 # Function to save trial data to a CSV file
+import csv
+from datetime import datetime
+import os
+
+# Function to save trial data to a CSV file, appending to the same file for each experiment
 def save_data():
     # Define the filename for the CSV
-    filename = "fitts_law_experiment_data.csv"
+    filename = os.path.join(os.path.expanduser('~'), 'Desktop', 'fitts_law_experiment_data.csv')
+
+    # Check if the file exists to decide whether to write headers
+    file_exists = os.path.isfile(filename)
+
     # Define the fieldnames for the CSV
-    fieldnames = ['trial', 'circle_radius', 'circle_center_x', 'circle_center_y', 'time_taken', 'distance', 'errors', 'direction']
-    # Open the file and write the data
-    with open(filename, mode='w', newline='') as file:
+    fieldnames = [
+        'trial',
+        'circle_radius',
+        'circle_center_x',
+        'circle_center_y',
+        'time_taken',
+        'distance',
+        'errors',
+        'direction',
+        'success',
+        'start_time'
+    ]
+
+    # Open the file in append mode
+    with open(filename, mode='a', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()  # Write the header
+        
+        # Write the header only if the file did not exist
+        if not file_exists:
+            writer.writeheader()
+        
         # Write each row of trial data
         for i, data in enumerate(trial_data):
-            writer.writerow({'trial': i+1, **data})
-    print(f"Data saved to {filename}")  # Print confirmation message
+            # Prepare data for writing
+            row = {
+                'trial': i + 1,
+                **data,
+                'circle_center_x': data['circle_center'][0],
+                'circle_center_y': data['circle_center'][1]
+            }
+            # Remove keys not in fieldnames
+            row = {key: row[key] for key in fieldnames}
+            writer.writerow(row)
 
-# Function to end the experiment
+    print(f"Data appended to {filename}")  # Print confirmation message
+
 def end_experiment():
-    canvas.delete("all")  # Clear the canvas
     save_data()  # Save the data collected so far
     show_results()  # Show the results screen
 
@@ -143,6 +176,12 @@ def show_results():
     close_button = tk.Button(results_window, text="Close", command=results_window.destroy)
     close_button.pack()
     results_window.mainloop()
+
+# Function to abort the experiment and close the application immediately
+def abort_experiment():
+    save_data()  # Optional: Save the data collected so far before exiting
+    root.quit()  # This will close the Tkinter window and exit the application
+    root.destroy()  # Ensures that the application is terminated
 
 # Function to show the welcome screen with the informed consent
 def show_welcome_screen():
@@ -201,16 +240,27 @@ def start_experiment():
     global root, canvas
     root = tk.Tk()
     root.title("Fitts' Law Experiment")
+    root.attributes('-fullscreen', True)
     # Set up the canvas for drawing circles
-    canvas = tk.Canvas(root, width=800, height=600, bg='white')
-    canvas.pack()
+    canvas = tk.Canvas(root, bg='white')
+    canvas.pack(fill=tk.BOTH, expand=True)
     canvas.bind("<Button-1>", handle_click)  # Bind mouse click event to handle_click function
-    # Button to start the experiment
+
+    root.attributes('-fullscreen', True)
+
+    def exit_fullscreen(event=None):
+        root.attributes('-fullscreen', False)
+
+    root.bind('<Escape>', exit_fullscreen)
+
     start_button = tk.Button(root, text="Start Experiment", command=start_trial)
     start_button.pack()
-    # Button to abort the experiment
-    abort_button = tk.Button(root, text="Abort Experiment", command=end_experiment)
+
+    abort_button = tk.Button(root, text="Abort Experiment", command=abort_experiment)
     abort_button.pack()
+
+    
+
     root.mainloop()
 
 # Start the application by showing the welcome screen
